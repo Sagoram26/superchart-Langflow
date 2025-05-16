@@ -1,0 +1,122 @@
+openWebUI:
+  hostname: open-webui
+  containerName: open-webui
+  image:
+    repository: mathieuawels/openwebui-awels
+    tag: latest
+    pullPolicy: IfNotPresent  
+
+resources:
+  limits:     
+    memory: "1G"
+    cpu: "1"
+  requests:   
+    memory: "512Mi"
+    cpu: "0.5"
+
+
+initContainers:
+  enabled: true
+  openwebui:
+    image: alpine:latest
+    env: |
+      AWELS_HOST=127.0.0.1
+      WEBUI_SECRET_KEY=changeme
+      ENABLE_SIGNUP=true
+      ENABLE_LOGIN_FORM=true
+    script: |
+      #!/bin/sh
+      echo "Initialisation d'Open WebUI..."
+      until curl -s http://open-webui:8080/health; do
+        echo "Waiting for open-webui..."
+        sleep 2
+      done
+      echo "Lancement du script d'initialisation terminé"
+
+
+restartPolicy: "unless-stopped"
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ports:
+  port: 3000
+  internalPort: 8080
+
+secrets:
+  database_url: "postgresql://user:pass@postgres:5432/langflow"
+  qdrant_api_key: "your-qdrant-api-key"
+  websocket_redis_url: "redis://redis:6379/1"
+  webui_secret_key: "your-secret-key"
+
+env : 
+  awelsHost: "127.0.0.1"
+  enableSignup: "True"
+  enableLoginForm: "True"
+  enablePersistentConfig: "True"
+  databasePoolRecycle: 3600
+  enableWebsocketSupport: "True"
+  websocketManager: "redis"
+  vectorDb: "qdrant"
+  qdrantUri: "http://qdrant:6333"   
+  qdrantPreferGrpc: "False"
+  qdrantGrpcPort: 6334
+
+persistence:
+  enabled: true
+  size: "10Gi"
+  accessMode: ReadWriteOnce
+  storageClass: "" 
+  existingClaim: "" 
+
+replicaCount: 1
+
+serviceAccount:
+ 
+  create: false
+  annotations: {}
+  name: ""
+  automount: true
+
+healthcheck:
+  path: /health
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 1
+    maxUnavailable: 0
+
+# Ajout de la configuration de sécurité
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: false
+  runAsRoot: true
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+
+
+

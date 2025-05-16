@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openwebui-init-data
+data:
+  .env: |
+    {{- .Values.initContainers.openwebui.env | nindent 4 }}
+  init-owui.sh: |
+    {{- .Values.initContainers.openwebui.script | nindent 4 }}

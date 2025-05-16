@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "open-webui.fullname" . }}
+  labels:
+    {{- include "open-webui.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "open-webui.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "open-webui.selectorLabels" . | nindent 8 }}
+    spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox
+          command: ['sh', '-c', 'until nc -z postgres 5432; do sleep 1; done']
+        - name: openwebui-init
+          image: {{ .Values.initContainers.openwebui.image }}
+          command:
+            - /bin/sh
+            - -c
+            - >
+              apk update &&
+              apk add curl &&
+              cd /tmp/ &&
+              source /tmp/.env &&
+              chmod +x /tmp/init-owui.sh &&
+              /tmp/init-owui.sh
+          volumeMounts:
+            - name: env-file
+              mountPath: /tmp/.env
+              subPath: .env
+            - name: init-script
+              mountPath: /tmp/init-owui.sh
+              subPath: init-owui.sh
+          securityContext:
+            runAsUser: 0
+
+      containers:
+        - name: {{ .Values.openWebUI.containerName }}
+          image: "{{ .Values.openWebUI.image.repository }}:{{ .Values.openWebUI.image.tag }}"
+          imagePullPolicy: {{ .Values.openWebUI.image.pullPolicy | default "IfNotPresent" }}
+          resources:
+            limits:
+              memory: {{ .Values.resources.memoryLimit | default "1G" }}
+              cpu: {{ .Values.resources.cpuLimit | default "1.0" }}
+          ports:
+            - name: open-webui
+              containerPort: {{ .Values.ports.internalPort | default 8080 }}
+          env:
+            {{- range $key, $value := .Values.secrets }}
+            - name: {{ $key | upper }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "open-webui.fullname" $ }}-secrets
+                  key: {{ $key | upper }}
+            {{- end }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key | upper }}
+              value: {{ $value | quote }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.ports.internalPort | default 8080 }}
+            initialDelaySeconds: {{ .Values.healthcheck.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ .Values.healthcheck.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.healthcheck.failureThreshold | default 3 }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthcheck.path | default "/health" }}
+              port: {{ .Values.ports.internalPort | default 8080 }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: open-webui-storage
+          persistentVolumeClaim:
+            claimName: {{ if .Values.persistence.existingClaim }}{{ .Values.persistence.existingClaim }}{{ else }}{{ include "open-webui.fullname" . }}-pvc{{ end }}
+        - name: env-file
+          configMap:
+            name: openwebui-init-data
+        - name: init-script
+          configMap:
+            name: openwebui-init-data
+
+
+
