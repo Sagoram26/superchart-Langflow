@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "langflow.fullname" . }}
+  labels:
+    {{- include "langflow.labels" . | nindent 4 }}
+spec:
+  
+
+  replicas: {{ .Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "langflow.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "langflow.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        fsGroup: {{ .Values.persistence.gid }}
+        runAsNonRoot: true
+        fsGroupChangePolicy: "OnRootMismatch"
+
+      volumes:
+        - name: langflow-storage
+          persistentVolumeClaim:
+            claimName: {{ include "langflow.fullname" . }}-pvc
+
+      initContainers:
+
+        - name: wait-for-dependencies
+          image: "{{ .Values.initContainer.image }}:{{ .Values.initContainer.tag }}"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: {{ .Values.persistence.uid }}
+            runAsGroup: {{ .Values.persistence.gid }}
+            allowPrivilegeEscalation: false
+          resources:
+            {{- toYaml .Values.initContainer.resources | nindent 12 }}
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z {{ .Release.Name }}-postgresql 5432 && nc -z {{ .Release.Name }}-qdrant 6333; do
+                echo "Waiting for {{ .Release.Name }}-postgresql and {{ .Release.Name }}-qdrant..."
+                sleep 5
+              done
+              echo "All dependencies are ready!"
+
+        - name: init-storage
+          image: "{{ .Values.initContainer.storageImage }}:{{ .Values.initContainer.storageTag }}"
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: {{ .Values.persistence.uid }}
+            runAsGroup: {{ .Values.persistence.gid }}
+            allowPrivilegeEscalation: false
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /data/config && \
+              touch /data/.permissions_check && \
+              rm /data/.permissions_check
+          volumeMounts:
+            - name: langflow-storage
+              mountPath: /data
+
+      containers:
+        - name: {{ .Values.containerName | default "langflow" }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | default "IfNotPresent" }}
+          securityContext:
+            runAsUser: {{ .Values.persistence.uid }}
+            runAsGroup: {{ .Values.persistence.gid }}
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: langflow-storage
+              mountPath: /data
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+           {{- range $key, $value := .Values.secrets }}
+            - name: {{ $key | upper }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "langflow.fullname" $ }}-secrets
+                  key: {{ $key | upper }}
+          {{- end }}
+
+          {{- $skipKeys := keys .Values.secrets }}
+          {{- range $key, $value := .Values.env }}
+            {{- if not (has $key $skipKeys) }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- end }}
+          
+          securityContext:
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.healthcheck.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthcheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthcheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthcheck.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.healthcheck.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.healthcheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthcheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthcheck.failureThreshold }}

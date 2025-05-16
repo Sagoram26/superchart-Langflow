@@ -1,0 +1,116 @@
+nameOverride: ""    
+fullnameOverride: "langflow" 
+
+
+names:
+  container: langflow
+  host: langflow
+  app: langflow 
+
+
+image:
+  repository: langflowai/langflow
+  tag: latest
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: false  
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+resources:
+  limits:
+    memory: 2Gi
+    cpu: "1.5"
+networkName: awels
+service:
+  port: 7860
+  type: ClusterIP  
+  
+secrets:
+  langflowSecretKey: "your-secret-key"
+  openaiApiKey: "your-openai-api-key"
+  postgresPassword: "pass"
+  superuserPassword: "admin-password"
+
+env:
+  LANGFLOW_AUTO_LOGIN: "False"  
+  LANGFLOW_SUPERUSER: "admin"
+  LANGFLOW_NEW_USER_IS_ACTIVE: "False"
+  LANGFLOW_SAVE_DB_IN_CONFIG_DIR: "true"
+  LANGFLOW_CONFIG_DIR: "/data/config"
+  LANGFLOW_PORT: "7860"
+
+healthcheck:
+  path: /health
+  port: 7860
+  initialDelaySeconds: 60
+  periodSeconds: 30
+  timeoutSeconds: 10
+  failureThreshold: 5
+
+
+serviceAccount:
+  create: true
+  name: ""
+
+ingress:
+  enabled: false  
+  className: "nginx"  
+  annotations: {}
+
+  hosts:
+    - host: langflow.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsNonRoot: true
+  fsGroupChangePolicy: "OnRootMismatch"
+
+
+initContainer:
+  postgresHost: my-postgresql
+  qdrantHost: my-qdrant
+  image: "busybox"
+  tag: "latest"
+  storageImage: "alpine"
+  storageTag: "latest"
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "64Mi"
+    limits:
+      cpu: "200m"
+      memory: "128Mi"
+
+
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  uid: 1000
+  gid: 1000
+  annotations:
+    pv.beta.kubernetes.io/gid: "1000"
