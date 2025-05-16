@@ -38,12 +38,37 @@ secrets:
   superuserPassword: "admin-password"
 
 env:
-  LANGFLOW_AUTO_LOGIN: "False"  
-  LANGFLOW_SUPERUSER: "admin"
-  LANGFLOW_NEW_USER_IS_ACTIVE: "False"
-  LANGFLOW_SAVE_DB_IN_CONFIG_DIR: "true"
-  LANGFLOW_CONFIG_DIR: "/data/config"
-  LANGFLOW_PORT: "7860"
+  - name: LANGFLOW_SUPERUSER_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        key: SUPERUSERPASSWORD
+
+  - name: LANGFLOW_SECRET_KEY
+    valueFrom:
+      secretKeyRef:
+        key: LANGFLOWSECRETKEY
+
+  - name: OPEN_AI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        key: OPENAIAPIKEY
+  - name: POSTGRES_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        key: POSTGRESPASSWORD
+
+  - name: LANGFLOW_AUTO_LOGIN
+    value: "False"
+  - name: LANGFLOW_SUPERUSER
+    value: "admin"
+  - name: LANGFLOW_NEW_USER_IS_ACTIVE
+    value: "False"
+  - name: LANGFLOW_SAVE_DB_IN_CONFIG_DIR
+    value: "true"
+  - name: LANGFLOW_CONFIG_DIR
+    value: "/data/config"
+  - name: LANGFLOW_PORT
+    value: "7860"
 
 healthcheck:
   path: /health

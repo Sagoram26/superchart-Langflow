@@ -81,21 +81,17 @@ spec:
               containerPort: {{ .Values.service.port }}
               protocol: TCP
           env:
-           {{- range $key, $value := .Values.secrets }}
-            - name: {{ $key | upper }}
+            {{- range .Values.env }}
+            - name: {{ .name }}
+              {{- if .valueFrom }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "langflow.fullname" $ }}-secrets
-                  key: {{ $key | upper }}
-          {{- end }}
-
-          {{- $skipKeys := keys .Values.secrets }}
-          {{- range $key, $value := .Values.env }}
-            {{- if not (has $key $skipKeys) }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
+                  key: {{ .valueFrom.secretKeyRef.key }}
+              {{- else }}
+              value: {{ .value | quote }}
+              {{- end }}
             {{- end }}
-          {{- end }}
           
           securityContext:
             runAsUser: {{ .Values.securityContext.runAsUser }}
