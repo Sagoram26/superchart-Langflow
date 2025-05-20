@@ -106,6 +106,14 @@ spec:
             periodSeconds: {{ .Values.healthcheck.periodSeconds }}
             timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds }}
             failureThreshold: {{ .Values.healthcheck.failureThreshold }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.healthcheck.path }}
+              port: http
+            failureThreshold: 30
+            timeoutSeconds: 10
+            periodSeconds: 10
+            initialDelaySeconds: 30
           readinessProbe:
             httpGet:
               path: {{ .Values.healthcheck.path }}

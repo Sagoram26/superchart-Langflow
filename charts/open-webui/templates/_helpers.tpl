@@ -4,7 +4,10 @@ Expand the name of the chart.
 {{- define "open-webui.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
-
+{{/* filepath: /home/aden/Charts/superchart/charts/open-webui/templates/_helpers.tpl */}}
+{{- define "postgresql.fullname" -}}
+{{- printf "%s-postgresql" .Release.Name -}}
+{{- end -}}
 {{/*
 Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).

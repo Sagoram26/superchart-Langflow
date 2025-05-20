@@ -36,4 +36,8 @@ dependencies:
     version: "*"
     repository: "file://charts/qdrant"  
     condition: qdrant.enabled
+  - name: open-webui
+    version: "*"
+    repository: "file://charts/open-webui"
+    condition: open-webui.enabled
 

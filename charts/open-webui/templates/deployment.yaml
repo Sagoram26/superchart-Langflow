@@ -17,7 +17,9 @@ spec:
       initContainers:
         - name: wait-for-postgres
           image: busybox
-          command: ['sh', '-c', 'until nc -z postgres 5432; do sleep 1; done']
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql 5432; do sleep 1; done']
+
+
         - name: openwebui-init
           image: {{ .Values.initContainers.openwebui.image }}
           command:
@@ -28,8 +30,7 @@ spec:
               apk add curl &&
               cd /tmp/ &&
               source /tmp/.env &&
-              chmod +x /tmp/init-owui.sh &&
-              /tmp/init-owui.sh
+              sh /tmp/init-owui.sh
           volumeMounts:
             - name: env-file
               mountPath: /tmp/.env
@@ -63,20 +64,29 @@ spec:
             - name: {{ $key | upper }}
               value: {{ $value | quote }}
             {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ .Values.healthcheck.path | default "/health" }}
+              port: {{ .Values.ports.internalPort | default 8080 }}
+            failureThreshold: {{ .Values.healthcheck.startupProbe.failureThreshold | default 30 }}
+            periodSeconds: {{ .Values.healthcheck.startupProbe.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.healthcheck.startupProbe.timeoutSeconds | default 10 }}
           livenessProbe:
             httpGet:
-              path: /health
+              path: {{ .Values.healthcheck.path | default "/health" }}
               port: {{ .Values.ports.internalPort | default 8080 }}
             initialDelaySeconds: {{ .Values.healthcheck.initialDelaySeconds | default 30 }}
-            periodSeconds: {{ .Values.healthcheck.periodSeconds | default 10 }}
-            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds | default 5 }}
+            periodSeconds: {{ .Values.healthcheck.periodSeconds | default 30 }}
+            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds | default 10 }}
             failureThreshold: {{ .Values.healthcheck.failureThreshold | default 3 }}
           readinessProbe:
             httpGet:
               path: {{ .Values.healthcheck.path | default "/health" }}
               port: {{ .Values.ports.internalPort | default 8080 }}
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            initialDelaySeconds: {{ .Values.healthcheck.initialDelaySeconds | default 30 }}
+            periodSeconds: {{ .Values.healthcheck.periodSeconds | default 10 }}
+            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds | default 5 }}
+            failureThreshold: {{ .Values.healthcheck.failureThreshold | default 3 }}
       volumes:
         - name: open-webui-storage
           persistentVolumeClaim:

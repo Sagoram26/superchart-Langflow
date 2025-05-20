@@ -7,13 +7,12 @@ openWebUI:
     pullPolicy: IfNotPresent  
 
 resources:
-  limits:     
-    memory: "1G"
-    cpu: "1"
-  requests:   
-    memory: "512Mi"
-    cpu: "0.5"
-
+  limits:
+    memory: 2Gi    # Increased from 1Gi
+    cpu: 1
+  requests:
+    memory: 512Mi  # Reduced request to allow for startup
+    cpu: 500m
 
 initContainers:
   enabled: true
@@ -26,11 +25,7 @@ initContainers:
       ENABLE_LOGIN_FORM=true
     script: |
       #!/bin/sh
-      echo "Initialisation d'Open WebUI..."
-      until curl -s http://open-webui:8080/health; do
-        echo "Waiting for open-webui..."
-        sleep 2
-      done
+      echo "Initialisation d'Open WebUI..." 
       echo "Lancement du script d'initialisation terminé"
 
 
@@ -45,12 +40,17 @@ ports:
   internalPort: 8080
 
 secrets:
-  database_url: "postgresql://user:pass@postgres:5432/langflow"
   qdrant_api_key: "your-qdrant-api-key"
   websocket_redis_url: "redis://redis:6379/1"
   webui_secret_key: "your-secret-key"
+  langflowdatabaseurl: >
+    postgresql://{{ .Values.postgresql.auth.username }}:pass@{{ include "postgresql.fullname" . }}:5432/{{ include "langflow.fullname" . }}
 
-env : 
+postgresql:
+  auth:
+    username: "awels"
+    database: "awels_db"
+env: 
   awelsHost: "127.0.0.1"
   enableSignup: "True"
   enableLoginForm: "True"
@@ -59,9 +59,11 @@ env :
   enableWebsocketSupport: "True"
   websocketManager: "redis"
   vectorDb: "qdrant"
-  qdrantUri: "http://qdrant:6333"   
+  qdrantUri: "http://qdrant:6333"
   qdrantPreferGrpc: "False"
   qdrantGrpcPort: 6334
+  name: USER_AGENT
+  value: "OpenWebUI/1.0"
 
 persistence:
   enabled: true
@@ -85,6 +87,10 @@ healthcheck:
   periodSeconds: 10
   timeoutSeconds: 5
   failureThreshold: 3
+  startupProbe:
+    failureThreshold: 30    # Allow up to 5 minutes for startup (30 * 10s)
+    periodSeconds: 10
+    timeoutSeconds: 10
 
 autoscaling:
   enabled: false
@@ -99,7 +105,7 @@ strategy:
     maxSurge: 1
     maxUnavailable: 0
 
-# Ajout de la configuration de sécurité
+
 podSecurityContext:
   fsGroup: 1000
   runAsNonRoot: false

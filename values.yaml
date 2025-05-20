@@ -4,6 +4,9 @@ postgresql:
   enabled: true
 qdrant:
   enabled: true
+open-webui:
+  enabled: true
+
 
 serviceAccount:
   create: true

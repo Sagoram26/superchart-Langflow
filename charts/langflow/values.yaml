@@ -32,35 +32,14 @@ service:
   type: ClusterIP  
   
 secrets:
-  langflowSecretKey: "your-secret-key"
-  openaiApiKey: "your-openai-api-key"
-  postgresPassword: "pass"
-  superuserPassword: "admin-password"
-  langflowdatebaseurl: "postgresql://{{ .Values.postgresql.auth.username }}:$(POSTGRES_PASSWORD)@{{ include \"postgresql.fullname\" . }}:5432/{{ .Values.postgresql.auth.database }}?sslmode=disable"
+  langflow_Secret_Key: "your-secret-key"
+  openai_Api_Key: "your-openai-api-key"
+  postgres_Password: "!P@ssw0rd!"
+  langflow_superuser_Password: "admin-password"
+  langflow_database_url: >-
+    postgresql://{{ .Values.postgresql.auth.username }}:{{ .Values.secrets.postgres_Password}}@{{ .Release.Name }}-postgresql:5432/{{ .Values.postgresql.auth.database }}?sslmode=disable
 
 env:
-  - name : LANGFLOW_DATABASE_URL
-    valueFrom:
-      secretKeyRef:
-        key: LANGFLOWDATABASEURL
-  - name: LANGFLOW_SUPERUSER_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        key: SUPERUSERPASSWORD
-
-  - name: LANGFLOW_SECRET_KEY
-    valueFrom:
-      secretKeyRef:
-        key: LANGFLOWSECRETKEY
-
-  - name: OPEN_AI_API_KEY
-    valueFrom:
-      secretKeyRef:
-        key: OPENAIAPIKEY
-  - name: POSTGRES_PASSWORD
-    valueFrom:
-      secretKeyRef:
-        key: POSTGRESPASSWORD
 
   - name: LANGFLOW_AUTO_LOGIN
     value: "False"
@@ -78,10 +57,10 @@ env:
 healthcheck:
   path: /health
   port: 7860
-  initialDelaySeconds: 60
-  periodSeconds: 30
-  timeoutSeconds: 10
-  failureThreshold: 5
+  initialDelaySeconds: 180    # Increased to allow more startup time
+  periodSeconds: 15          # Decreased for more frequent checks
+  timeoutSeconds: 5          # Decreased since service responds quickly
+  failureThreshold: 10       # Increased to allow more retry attempts
 
 
 serviceAccount:
@@ -144,3 +123,8 @@ persistence:
   gid: 1000
   annotations:
     pv.beta.kubernetes.io/gid: "1000"
+
+postgresql:
+  auth:
+    username: "awels"
+    database: "awels_db"
