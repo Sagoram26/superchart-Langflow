@@ -1,11 +1,15 @@
 langflow:
   enabled: true
+  ingress : 
+    enabled : true
 postgresql:
   enabled: true
 qdrant:
   enabled: true
 open-webui:
   enabled: true
+  ingress:
+    enabled: true
 pipelines:
   enabled: true
 

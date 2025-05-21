@@ -6,20 +6,30 @@ SUPER CHART DEPLOYMENT SUMMARY
 
 Ce super chart a déployé les sous-charts suivants :
 
-------------------------------------
+ ------------------------------------
 LANGFLOW
-------------------------------------
-{{- if and (index .Values "langflow") (index .Subcharts "langflow") }}
+ ------------------------------------
+{{ if and (index .Values "langflow") (index .Subcharts "langflow") }}
 {{ include "langflow.notes" .Subcharts.langflow | indent 2 }}
-{{- else }}
+{{ else }}
 Langflow n'est pas activé dans ce déploiement.
-{{- end }}
+{{ end }}
 
-------------------------------------
+ ------------------------------------
 OPEN WEBUI
-------------------------------------
-{{- if and (index .Values "open-webui") (index .Subcharts "open-webui") }}
-{{ include "open-webui.notes" .Subcharts.open-webui | indent 2 }}
-{{- else }}
+ ------------------------------------
+{{ if and (index .Values "open-webui") (index .Subcharts "open-webui") }}
+{{ include "open-webui.notes" (index .Subcharts "open-webui") | indent 2 }}
+{{ else }}
 OpenWebUI n'est pas activé dans ce déploiement.
+{{- if not (lookup "v1" "Pod" "ingress-nginx" "ingress-nginx-controller") }}
+⚠️ L'Ingress Controller nginx n'est pas installé. Vous pouvez l'installer avec :
+
+helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+
+Après l'installation de l'Ingress Controller, supprimez puis réinstallez la chart :
+
+helm uninstall {{ .Release.Name }}
+helm install {{ .Release.Name }} ./chemin/vers/votre/chart
+{{- end }}
 {{- end }}
