@@ -111,7 +111,7 @@ spec:
               path: {{ .Values.healthcheck.path }}
               port: http
             failureThreshold: 30
-            timeoutSeconds: 10
+            timeoutSeconds: 15
             periodSeconds: 10
             initialDelaySeconds: 30
           readinessProbe:

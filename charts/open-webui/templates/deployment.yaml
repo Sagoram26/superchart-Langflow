@@ -15,10 +15,12 @@ spec:
         {{- include "open-webui.selectorLabels" . | nindent 8 }}
     spec:
       initContainers:
-        - name: wait-for-postgres
+        - name: wait-for-dependencies
           image: busybox
-          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql 5432 && nc -z {{ .Release.Name }}-qdrant 6333 && nc -z {{ .Release.Name }}-pipelines; do sleep 2; done']
-
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql 5432 && nc -z {{ .Release.Name }}-qdrant 6333 && nc -z {{ .Release.Name }}-pipelines 9099; do sleep 2; done']
+        - name : wait-for-langflow
+          image: busybox
+          command: ['sh', '-c', 'until nc -z langflow 7860; do sleep 2; done']
 
         - name: openwebui-init
           image: {{ .Values.initContainers.openwebui.image }}

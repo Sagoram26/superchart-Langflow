@@ -40,4 +40,7 @@ dependencies:
     version: "*"
     repository: "file://charts/open-webui"
     condition: open-webui.enabled
-
+  - name: pipelines
+    version: "*"
+    repository: "file://charts/pipelines"
+    condition: pipelines.enabled

@@ -6,7 +6,8 @@ qdrant:
   enabled: true
 open-webui:
   enabled: true
-
+pipelines:
+  enabled: true
 
 serviceAccount:
   create: true
