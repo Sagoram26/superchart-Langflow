@@ -17,7 +17,7 @@ spec:
       initContainers:
         - name: wait-for-postgres
           image: busybox
-          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql 5432; do sleep 1; done']
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql 5432 && nc -z {{ .Release.Name }}-qdrant 6333 && nc -z {{ .Release.Name }}-pipelines; do sleep 2; done']
 
 
         - name: openwebui-init

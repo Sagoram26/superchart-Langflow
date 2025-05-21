@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pipelines.fullname" $ }}
+  labels:
+    {{- include "pipelines.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "pipelines.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pipelines.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ include "pipelines.fullname" $ }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.port }}
+              protocol: TCP
+          env:
+          {{- range .Values.env }}
+          - name: {{ .name }}
+            {{- if .valueFrom }}
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "pipelines.fullname" $ }}-secrets
+                key: {{ .valueFrom.secretKeyRef.key | quote }}
+            {{- else }}
+            value: {{ .value | quote }}
+            {{- end }}
+          {{- end }}
+          volumeMounts:
+            - name: storage
+              mountPath: /app/pipelines
+          {{- if .Values.healthcheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.healthcheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthcheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthcheck.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.healthcheck.initialDelaySeconds }}
+            periodSeconds: {{ .Values.healthcheck.periodSeconds }}
+            timeoutSeconds: {{ .Values.healthcheck.timeoutSeconds }}
+            failureThreshold: {{ .Values.healthcheck.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: storage
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "pipelines.fullname" $}}-pvc
+          {{- else }}
+          emptyDir: {}
+          {{- end }}

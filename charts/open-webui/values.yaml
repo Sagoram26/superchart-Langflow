@@ -84,9 +84,9 @@ serviceAccount:
 healthcheck:
   path: /health
   initialDelaySeconds: 30
-  periodSeconds: 10
+  periodSeconds: 15
   timeoutSeconds: 5
-  failureThreshold: 3
+  failureThreshold: 5
   startupProbe:
     failureThreshold: 30    # Allow up to 5 minutes for startup (30 * 10s)
     periodSeconds: 10
