@@ -112,12 +112,13 @@ podSecurityContext:
   runAsRoot: true
 
 ingress:
-  enabled: false
-  className: ""
+  enabled: true
+  className: nginx
+  host: openwebui.local.com
+  # Si vous utilisez TLS, mettez tls à true
   annotations: {}
 
   hosts:
-    - host: chart-example.local
       paths:
         - path: /
           pathType: ImplementationSpecific

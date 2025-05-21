@@ -67,10 +67,6 @@ serviceAccount:
   create: true
   name: ""
 
-ingress:
-  enabled: false  
-  className: "nginx"  
-  annotations: {}
 
   hosts:
     - host: langflow.local
@@ -128,3 +124,13 @@ postgresql:
   auth:
     username: "awels"
     database: "awels_db"
+
+ingress:
+  enabled: true
+  className: nginx
+  host: langflow.local
+  tls: false
+  # Si vous utilisez TLS, mettez tls à true
+  annotations: {}
+    # kubernetes.io/tls-acme: "true"
+    # autres annotations selon vos besoins

@@ -52,7 +52,7 @@ spec:
               memory: {{ .Values.resources.memoryLimit | default "1G" }}
               cpu: {{ .Values.resources.cpuLimit | default "1.0" }}
           ports:
-            - name: open-webui
+            - name: http
               containerPort: {{ .Values.ports.internalPort | default 8080 }}
           env:
             {{- range $key, $value := .Values.secrets }}
